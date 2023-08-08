@@ -66,4 +66,6 @@ st.title("PDF Splitter")
 uploaded_file = st.file_uploader("Choose a PDF file", type="pdf")
 
 if uploaded_file is not None:
+    st.text("Processing the PDF. This may take a moment...")  # Inform the user that processing is underway
     split_pdf(uploaded_file)
+    st.text("Processing complete!")  # Optionally, inform the user when processing is done
