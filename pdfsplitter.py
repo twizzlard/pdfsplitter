@@ -1,9 +1,7 @@
 import streamlit as st
 import PyPDF2
 import re
-import zipfile
-import shutil
-import os
+from io import BytesIO
 
 
 def split_pdf(file_bytes):
@@ -22,10 +20,6 @@ def split_pdf(file_bytes):
         flags=re.DOTALL)
     matches = pattern.findall(content)
 
-    # Directory to save the individual PDFs
-    output_dir = 'output_pdfs'
-    os.makedirs(output_dir, exist_ok=True)
-
     # Start splitting the PDF
     start_page = 0
     for page_num in matches:
@@ -33,8 +27,18 @@ def split_pdf(file_bytes):
         writer = PyPDF2.PdfWriter()
         for split_page_num in range(start_page, end_page + 1):
             writer.add_page(reader.pages[split_page_num])
-        with open(f'{output_dir}/split_{start_page + 1}_{end_page + 1}.pdf', 'wb') as output_file:
-            writer.write(output_file)
+
+        # Create a download link
+        buffer = BytesIO()
+        writer.write(buffer)
+        buffer.seek(0)
+
+        st.download_button(
+            label=f'Download split_{start_page + 1}_{end_page + 1}.pdf',
+            data=buffer,
+            file_name=f'split_{start_page + 1}_{end_page + 1}.pdf',
+            mime='application/pdf'
+        )
         start_page = end_page + 1
 
     # If there are pages left after the last split
@@ -42,16 +46,19 @@ def split_pdf(file_bytes):
         writer = PyPDF2.PdfWriter()
         for split_page_num in range(start_page, num_pages):
             writer.add_page(reader.pages[split_page_num])
-        with open(f'{output_dir}/split_{start_page + 1}_{num_pages}.pdf', 'wb') as output_file:
-            writer.write(output_file)
 
-    # Zip the files
-    shutil.make_archive('split_pdfs', 'zip', '.', 'output_pdfs')
+        buffer = BytesIO()
+        writer.write(buffer)
+        buffer.seek(0)
 
-    # Clean up the individual PDFs
-    shutil.rmtree(output_dir)
+        st.download_button(
+            label=f'Download split_{start_page + 1}_{num_pages}.pdf',
+            data=buffer,
+            file_name=f'split_{start_page + 1}_{num_pages}.pdf',
+            mime='application/pdf'
+        )
 
-    print(f'Successfully split the PDF.')
+    st.success('PDF split successfully!')
 
 
 # Streamlit App
@@ -60,7 +67,3 @@ uploaded_file = st.file_uploader("Choose a PDF file", type="pdf")
 
 if uploaded_file is not None:
     split_pdf(uploaded_file)
-    st.success('PDF split successfully!')
-
-    # Provide download link for ZIP
-    st.markdown('Download the split PDFs [here](split_pdfs.zip)')
