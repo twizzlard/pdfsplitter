@@ -1,60 +1,73 @@
 import streamlit as st
 import PyPDF2
-import re
 import zipfile
-import io
+import os
+import tempfile
 
-def split_pdf(file_bytes):
-    reader = PyPDF2.PdfReader(file_bytes)
-    num_pages = len(reader.pages)
-    content = ""
-    zip_buffer = io.BytesIO()
+locations = [
+    '60500 GENERAL ADMINI', '60506 ECOPARK', '60523-IAH AMBASS HOU', '60524-HOB AMBASS',
+    '64065A IAH VALET HOU', '64066B IAH VALET HOU', '64067C IAH VALET HOU', '64077 HOB VALET',
+    '64197 ECOPARK', 'IAH AMBASS FAC MGR H', 'IAH VALET FAC MGR HO', 'GRAND TOTALS'
+]
 
-    # Read all pages into one content variable
-    for page_num in range(num_pages):
-        page = reader.pages[page_num]
-        content += page.extract_text()
-
-    # Use regex to find all occurrences of the pattern with page numbers
-    pattern = re.compile(
-        r'Contribution Total:.*?(?:REGULAR PAY.*?Break Total:|Break Total:.*?REGULAR PAY).*?(?:Contribution|Deduction) Total:.*?(?:Contribution|Deduction) Total:.*?Page (\d+)',
-        flags=re.DOTALL)
-    matches = pattern.findall(content)
-
-    # Create a ZIP file in memory
-    with zipfile.ZipFile(zip_buffer, 'w') as zip_file:
-        # Start splitting the PDF
-        start_page = 0
-        for page_num in matches:
-            end_page = int(page_num) - 1  # Convert page number to 0-based index
-            pdf_bytes = io.BytesIO()
-            writer = PyPDF2.PdfWriter()
-            for split_page_num in range(start_page, end_page + 1):
-                writer.add_page(reader.pages[split_page_num])
-            writer.write(pdf_bytes)
-            pdf_bytes.seek(0)
-            zip_file.writestr(f'split_{start_page + 1}_{end_page + 1}.pdf', pdf_bytes.read())
-            start_page = end_page + 1
-
-        # If there are pages left after the last split
-        if start_page < num_pages:
-            pdf_bytes = io.BytesIO()
-            writer = PyPDF2.PdfWriter()
-            for split_page_num in range(start_page, num_pages):
-                writer.add_page(reader.pages[split_page_num])
-            writer.write(pdf_bytes)
-            pdf_bytes.seek(0)
-            zip_file.writestr(f'split_{start_page + 1}_{num_pages}.pdf', pdf_bytes.read())
-
-    print(f'Successfully split the PDF.')
-    return zip_buffer.getvalue()
-
-# Streamlit App
-st.title("PDF Splitter")
 uploaded_file = st.file_uploader("Choose a PDF file", type="pdf")
 
 if uploaded_file is not None:
-    st.text("Processing the PDF. This may take a moment...")
-    zip_bytes = split_pdf(uploaded_file)
-    st.success('PDF split successfully!')
-    st.download_button("Download ZIP File", zip_bytes, "split_pdfs.zip", "application/zip")
+    st.write("File uploaded successfully!")
+
+    # Create a temporary directory to store split PDF files
+    temp_dir = tempfile.mkdtemp()
+
+    reader = PyPDF2.PdfReader(uploaded_file)
+    num_pages = len(reader.pages)
+    start_page = 0
+
+    for i, location in enumerate(locations[:-1]):
+        next_location = locations[i + 1]
+        end_page = None
+
+        # Loop through the pages and find the page where the next location appears
+        for page_num in range(start_page, num_pages):
+            page_content = reader.pages[page_num].extract_text()
+            if next_location in page_content:
+                end_page = page_num - 1
+                break
+
+        if end_page is not None:
+            writer = PyPDF2.PdfWriter()
+            for split_page_num in range(start_page, end_page + 1):
+                writer.add_page(reader.pages[split_page_num])
+
+            output_filename = f'{str(start_page + 1).zfill(2)}-{str(end_page + 1).zfill(2)}_{location}.pdf'
+            output_path = os.path.join(temp_dir, output_filename)
+
+            with open(output_path, 'wb') as output_file:
+                writer.write(output_file)
+                
+            st.write(f"Created file: {output_filename}")
+
+            start_page = end_page + 1
+        else:
+            st.write(f"Could not find the next location {next_location}")
+
+    # Handle the last location until the end of the PDF
+    writer = PyPDF2.PdfWriter()
+    for split_page_num in range(start_page, num_pages):
+        writer.add_page(reader.pages[split_page_num])
+
+    output_filename = f'{str(start_page + 1).zfill(2)}-{num_pages}_{locations[-1]}.pdf'
+    output_path = os.path.join(temp_dir, output_filename)
+    with open(output_path, 'wb') as output_file:
+        writer.write(output_file)
+        
+    st.write(f"Created file: {output_filename}")
+
+    # Zip the split PDF files and provide a download link
+    zip_path = os.path.join(temp_dir, 'split_pdfs.zip')
+    with zipfile.ZipFile(zip_path, 'w') as zip_file:
+        for filename in os.listdir(temp_dir):
+            if filename.endswith('.pdf'):
+                zip_file.write(os.path.join(temp_dir, filename), filename)
+
+    st.write("Successfully split the PDF.")
+    st.download_button("Download the ZIP file", zip_path)
