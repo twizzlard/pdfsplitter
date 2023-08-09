@@ -67,4 +67,4 @@ uploaded_file = st.file_uploader("Choose a PDF file", type="pdf")
 if uploaded_file is not None:
     st.text("Processing the PDF. This may take a moment...")
     zip_bytes = split_pdf(uploaded_file)
-    st.download_button("Download ZIP File", zip_bytes, "split_pdfs.zip", "application/zip")
+    st.download_button("Download ZIP File", zip_bytes, f"pdfs_{filename}.zip", "application/zip")
