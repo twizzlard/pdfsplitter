@@ -18,7 +18,9 @@ def split_pdf(uploaded_file, locations_txt_file=None):
 
     if 'GRAND TOTALS' not in locations:
         locations.append('GRAND TOTALS')
-        
+
+    st.write("Locations:", locations)
+    
     reader = PyPDF2.PdfReader(uploaded_file)
     num_pages = len(reader.pages)
     start_page = 0
