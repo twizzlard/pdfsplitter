@@ -19,6 +19,8 @@ def split_pdf(uploaded_file, locations_txt_file=None):
     if 'GRAND TOTALS' not in locations:
         locations.append('GRAND TOTALS')
 
+    locations = [x.strip() for x in locations]
+
     st.write("Locations:", locations)
     
     reader = PyPDF2.PdfReader(uploaded_file)
@@ -28,6 +30,7 @@ def split_pdf(uploaded_file, locations_txt_file=None):
         # Create a ZIP file in memory
     with zipfile.ZipFile(zip_buffer, 'w') as zip_file:
         for i, location in enumerate(locations[:-1]):
+            st.write(location)
             next_location = locations[i + 1]
             end_page = None
             
