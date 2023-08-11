@@ -25,9 +25,49 @@ def split_pdf(uploaded_file, locations_txt_file=None):
     num_pages = len(reader.pages)
     start_page = 0
 
-    # Create a ZIP file in memory
+        # Create a ZIP file in memory
     with zipfile.ZipFile(zip_buffer, 'w') as zip_file:
-        # Rest of the code remains the same
+        for i, location in enumerate(locations[:-1]):
+            next_location = locations[i + 1]
+            end_page = None
+            
+            # Loop through the pages and find the page where the next location appears
+            for page_num in range(start_page, num_pages):
+                page_content = reader.pages[page_num].extract_text()
+                if next_location in page_content:
+                    end_page = page_num - 1
+                    break
+
+            if end_page is not None:
+                pdf_bytes = io.BytesIO()
+                writer = PyPDF2.PdfWriter()
+                for split_page_num in range(start_page, end_page + 1):
+                    writer.add_page(reader.pages[split_page_num])
+                writer.write(pdf_bytes)
+                pdf_bytes.seek(0)
+                output_filename = f'{str(start_page + 1).zfill(2)}-{str(end_page + 1).zfill(2)}_{location}_{uploaded_file.name[:-4]}.pdf'
+                zip_file.writestr(output_filename, pdf_bytes.read())
+                
+                st.text(f"Created: {output_filename}")
+                start_page = end_page + 1
+            else:
+                st.text(f"Could not find the next location {next_location}")
+
+        # Handle the last location until the end of the PDF
+        pdf_bytes = io.BytesIO()
+        writer = PyPDF2.PdfWriter()
+        for split_page_num in range(start_page, num_pages):
+            writer.add_page(reader.pages[split_page_num])
+            
+        output_filename = f'{str(start_page + 1).zfill(2)}-{num_pages}_{locations[-1]}_{uploaded_file.name[:-4]}.pdf'
+        writer.write(pdf_bytes)
+        pdf_bytes.seek(0)
+        zip_file.writestr(output_filename, pdf_bytes.read())
+
+        st.text(f"Created: {output_filename}")
+
+    st.success('Successfully split the PDF.')
+    return zip_buffer.getvalue()
 
 # Streamlit App
 st.title("PDF Splitter")
