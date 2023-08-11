@@ -14,15 +14,14 @@ def split_pdf(uploaded_file, locations_txt_file=None):
 
     # If a txt file is uploaded, update the locations from the contents of the file
     if locations_txt_file is not None:
-        locations = locations_txt_file.read().split('\n')
+        locations = locations_txt_file.read().decode('utf-8').split('\n')
+        st.write("Locations from uploaded txt file:", locations)  # Display the locations from the txt file
 
     if 'GRAND TOTALS' not in locations:
         locations.append('GRAND TOTALS')
 
     locations = [x.strip() for x in locations]
 
-    st.write("Locations:", locations)
-    
     reader = PyPDF2.PdfReader(uploaded_file)
     num_pages = len(reader.pages)
     start_page = 0
