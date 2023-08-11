@@ -56,6 +56,7 @@ def split_pdf(uploaded_file, locations_txt_file=None):
                 st.text(f"Could not find the next location {next_location}")
 
         # Handle the last location until the end of the PDF
+        st.write('GRAND TOTALS')
         pdf_bytes = io.BytesIO()
         writer = PyPDF2.PdfWriter()
         for split_page_num in range(start_page, num_pages):
