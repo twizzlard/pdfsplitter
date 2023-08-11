@@ -71,8 +71,8 @@ def split_pdf(uploaded_file, locations_txt_file=None):
 
 # Streamlit App
 st.title("PDF Splitter")
-uploaded_file = st.file_uploader("Choose a PDF file", type="pdf")
 locations_txt_file = st.file_uploader("Optionally, upload a txt file for locations", type="txt")
+uploaded_file = st.file_uploader("Choose a PDF file", type="pdf")
 
 if uploaded_file is not None:
     st.text("Processing the PDF. This may take a moment...")
