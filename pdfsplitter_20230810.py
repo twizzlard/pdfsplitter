@@ -14,7 +14,7 @@ def split_pdf(uploaded_file, locations_txt_file=None):
 
     # If a txt file is uploaded, update the locations from the contents of the file
     if locations_txt_file is not None:
-        locations = locations_txt_file.read().decode('utf-8').split('\n')
+        locations = locations_txt_file.read().split('\n')
 
     if 'GRAND TOTALS' not in locations:
         locations.append('GRAND TOTALS')
